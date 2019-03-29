@@ -1,0 +1,71 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">  
+  <!--link rel="stylesheet" href="https://cdn.shoelace.style/1.0.0-beta24/shoelace.css"-->
+
+  <title>HAST Query</title>
+
+  <style>
+    .hast-table {
+        border-collapse: collapse;
+        border-spacing: 0;
+        width: 100%;
+        border: 1px solid #ddd;
+    }
+    .hast-table td,
+    .hast-table th {
+        text-align: left;
+        padding: 8px;
+    }
+    .hast-table tr:nth-child(even){
+        background-color: #f2f2f2
+    }
+    .hast-table tbody,
+    .hast-table thead {
+        display: block;
+        /*overflow-x: auto; */
+    }
+    .hast-table tbody 
+    {
+        /*overflow-x: auto;*/
+        height: 500px;
+    }    
+  </style>  
+</head>
+
+<body>
+  <form name="hast-query" method="post" action="{{ url_for('query', organization='hast') }}">
+    
+    <select name="collector_id"><option>--</opiton>{% for i in collector_list %}<option value="{{ i.pid }}"{% if args.collector_id and args.collector_id|int == i.pid|int %} selected{% endif %}>{% if i.name_en %}{{ i.name_en }}{% endif %} {% if i.nameC %}{{i.nameC }}{% endif %}</option>{% endfor %}</select>
+    學名 <input name="sci_name" type="text"></input>
+中文名 <input name="sci_name_zh" type="text"></input>
+<div>採集號 <input name="collect_num_1" type="text"{% if args.collect_num_1%} value="{{ args.collect_num_1 }}"{% endif %}></input> - <input name="collect_num_2" type="text"{% if args.collect_num_2 %} value="{{ args.collect_num_2 }}"{% endif %}></input></div>
+
+
+    <input type="submit" value="查詢"></input>    <input type="clear" value="重設"></input>
+</form>
+<a href="{{ url_for('export_csv', organization='hast', **args) }}"><button>下載csv</button></a>
+
+<div>
+  <table class="hast-table">
+    <thead>
+      <tr><th>#</th>{% for h in result.headers %}<th>{{ h.label }}</th>{% endfor %}</tr>
+    </thead>
+    <tbody>
+      {% for i in result.rows %}
+      <tr>
+        <td>{{ loop.index }}</td>{% for h in result.headers %}<td>{{ i[h.key] }}</td>{% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+
+<div id="query-hast"></div>
+<!--script src="/static/js/main.js"></script-->
+</body>
+</html>
