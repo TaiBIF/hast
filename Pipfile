@@ -12,6 +12,7 @@ flask-sqlalchemy = "*"
 pymssql = "*"
 cython = "*"
 openpyxl = "*"
+gunicorn = "*"
 
 [requires]
 python_version = "3.5.3"
