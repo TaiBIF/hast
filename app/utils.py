@@ -32,4 +32,4 @@ def default_header_list():
         ('_geo_lat', 'WGS84 Lat'),
         ('_alt', '海拔')
     ]
-    return [ {'key': x[0], 'label': x[1]} for x in map_sort]
+    return [ {'key': x[0], 'label': x[1], 'alphabet': chr(65+i) } for i, x in enumerate(map_sort)]

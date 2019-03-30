@@ -33,7 +33,7 @@ def query(organization):
     collector_list= org.get_collector_list()
     args = {}
     if request.method == 'POST':
-        for i in ['collector_id', 'name_sci', 'name_sci_zh', 'collect_num_1', 'collect_num_2']:
+        for i in ['collector_id', 'sci_name', 'collect_num_1', 'collect_num_2']:
             if request.form.get(i, ''):        
                 args[i] = request.form[i]
         return redirect(url_for('query', organization='hast', **args))
@@ -46,12 +46,12 @@ def query(organization):
 def export_csv(organization):
     args = request.args # sanity?
     
-    tmp = tempfile.NamedTemporaryFile()
+    #tmp = tempfile.NamedTemporaryFile()
         
     filename = 'hast-dump.xlsx'
     org_map = {'hast': OrgHast}
     org = org_map[organization]()
-    csv_list = []
+    csv_list = []    
     q = org.query(args)
 
     wb = Workbook(write_only=True)

@@ -9,62 +9,125 @@
   <title>HAST Query</title>
 
   <style>
-    .hast-table {
-        border-collapse: collapse;
-        border-spacing: 0;
+    .table-wrapper {
+        /*max-width: 1120px;*/
         width: 100%;
-        border: 1px solid #ddd;
+        max-height: 480px;
+        overflow: scroll;
+        position: relative;        
     }
-    .hast-table td,
-    .hast-table th {
-        text-align: left;
-        padding: 8px;
+    .hast-table {
+        margin: 10px;
+        /*table-layout: auto;*/
+        width: 100%;
+        table-layout: fixed;
+        position: relative;
+        border-collapse: collapse;        
+        border: 2px solid olive;
     }
+
+
+    .hast-table td, .hast-table th {
+        padding: 0.25em;
+    }    
+    
+    .hast-table thead th {
+        position: -webkit-sticky; /* for Safari */
+        position: sticky;
+        top: 0;
+        background: darkgreen;
+        color: #FFF;
+    }
+    .hast-table thead th:first-child {
+        left: 0;
+        z-index: 1;
+    }
+    
     .hast-table tr:nth-child(even){
         background-color: #f2f2f2
     }
-    .hast-table tbody,
-    .hast-table thead {
-        display: block;
-        /*overflow-x: auto; */
+    
+    .hast-table tbody th {
+        position: -webkit-sticky; /* for Safari */
+        position: sticky;
+        left: 0;
+        background: #FFF;
+        border-right: 1px solid #CCC;
     }
-    .hast-table tbody 
-    {
-        /*overflow-x: auto;*/
-        height: 500px;
-    }    
+    .query-controls {
+        border: 2px dashed olive;
+        padding: 16px;
+        margin: 20px 0;
+    }
+    .flash-msg {
+        border: 1px dashed red;
+        background-color: #def;
+    }
+
+    .ellipsis {
+        position: relative;
+    }
+    .ellipsis:before {
+        content: '&nbsp;';
+        visibility: hidden;
+    }
+    .ellipsis span {
+        position: absolute;
+        left: 0;
+        right: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
   </style>  
 </head>
 
 <body>
+  <h1>HAST - query</h1>
+  {% with messages = get_flashed_messages() %}
+<div class="flash-msg">  
+  {% if messages %}
+    <ul class=flashes>
+    {% for message in messages %}
+      <li>{{ message }}</li>
+    {% endfor %}
+    </ul>
+    {% endif %}
+</div>    
+{% endwith %}
+
   <form name="hast-query" method="post" action="{{ url_for('query', organization='hast') }}">
     
-    <select name="collector_id"><option>--</opiton>{% for i in collector_list %}<option value="{{ i.pid }}"{% if args.collector_id and args.collector_id|int == i.pid|int %} selected{% endif %}>{% if i.name_en %}{{ i.name_en }}{% endif %} {% if i.nameC %}{{i.nameC }}{% endif %}</option>{% endfor %}</select>
-    學名 <input name="sci_name" type="text"></input>
-中文名 <input name="sci_name_zh" type="text"></input>
+    <div class="query-controls">
+      <div>採集者 <select name="collector_id"><option>--</opiton>{% for i in collector_list %}<option value="{{ i.pid }}"{% if args.collector_id and args.collector_id|int == i.pid|int %} selected{% endif %}>{% if i.name_en %}{{ i.name_en }}{% endif %} {% if i.nameC %}{{i.nameC }}{% endif %}</option>{% endfor %}</select></div>
+<div>學名/中文名 <input name="sci_name" type="text"{% if args.sci_name %} value="{{ args.sci_name}}"{% endif %}></input></div>
 <div>採集號 <input name="collect_num_1" type="text"{% if args.collect_num_1%} value="{{ args.collect_num_1 }}"{% endif %}></input> - <input name="collect_num_2" type="text"{% if args.collect_num_2 %} value="{{ args.collect_num_2 }}"{% endif %}></input></div>
+</div>
 
-
-    <input type="submit" value="查詢"></input>    <input type="clear" value="重設"></input>
+<input type="submit" value="查詢"></input>    <input type="reset" value="reset"></input>
+<hr>
 </form>
-<a href="{{ url_for('export_csv', organization='hast', **args) }}"><button>下載csv</button></a>
 
-<div>
+
+欄位說明：
+<ul>{% for h in result.headers %}<li>{{ h.alphabet}}: {{ h.label }}</li>{% endfor%}</ul>
+<div class="table-wrapper">
   <table class="hast-table">
     <thead>
-      <tr><th>#</th>{% for h in result.headers %}<th>{{ h.label }}</th>{% endfor %}</tr>
+      <tr><th width="40px">#</th>{% for h in result.headers %}<th width="{% if h.alphabet in ['P', 'T', 'V'] %}300{% elif h.alphabet in ['C', 'D', 'G', 'I'] %}200{% elif h.alphabet in ['B'] %}120{% else %}80{% endif %}px">{{ h.alphabet }}</th>{% endfor %}</tr>
     </thead>
     <tbody>
       {% for i in result.rows %}
       <tr>
-        <td>{{ loop.index }}</td>{% for h in result.headers %}<td>{{ i[h.key] }}</td>{% endfor %}
+        <th>{{ loop.index }}</th>{% for h in result.headers %}<td class="ellipsis"><span>{{ i[h.key] }}</span></td>{% endfor %}
       </tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
 
-
+<div><a href="{{ url_for('export_csv', organization='hast', **args) }}"><button>下載csv</button></a></div>
+hast. 2019
 <div id="query-hast"></div>
 <!--script src="/static/js/main.js"></script-->
 </body>
