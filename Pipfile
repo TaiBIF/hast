@@ -13,6 +13,8 @@ pymssql = "*"
 cython = "*"
 openpyxl = "*"
 gunicorn = "*"
+supervisor = "*"
+jinja2 = "*"
 
 [requires]
 python_version = "3.5.3"

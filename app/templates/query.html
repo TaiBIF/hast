@@ -3,7 +3,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">  
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <!--link rel="stylesheet" href="https://cdn.shoelace.style/1.0.0-beta24/shoelace.css"-->
 
   <title>HAST Query</title>
@@ -14,7 +14,7 @@
         width: 100%;
         max-height: 480px;
         overflow: scroll;
-        position: relative;        
+        position: relative;
     }
     .hast-table {
         margin: 10px;
@@ -22,15 +22,13 @@
         width: 100%;
         table-layout: fixed;
         position: relative;
-        border-collapse: collapse;        
+        border-collapse: collapse;
         border: 2px solid olive;
     }
-
-
     .hast-table td, .hast-table th {
         padding: 0.25em;
-    }    
-    
+    }
+
     .hast-table thead th {
         position: -webkit-sticky; /* for Safari */
         position: sticky;
@@ -42,11 +40,11 @@
         left: 0;
         z-index: 1;
     }
-    
+
     .hast-table tr:nth-child(even){
         background-color: #f2f2f2
     }
-    
+
     .hast-table tbody th {
         position: -webkit-sticky; /* for Safari */
         position: sticky;
@@ -79,13 +77,14 @@
         overflow: hidden;
         text-overflow: ellipsis;
     }
-  </style>  
+  </style>
+
 </head>
 
 <body>
   <h1>HAST - query</h1>
   {% with messages = get_flashed_messages() %}
-<div class="flash-msg">  
+<div class="flash-msg">
   {% if messages %}
     <ul class=flashes>
     {% for message in messages %}
@@ -93,17 +92,19 @@
     {% endfor %}
     </ul>
     {% endif %}
-</div>    
+</div>
 {% endwith %}
 
   <form name="hast-query" method="post" action="{{ url_for('query', organization='hast') }}">
-    
+
     <div class="query-controls">
-      <div>採集者 <select name="collector_id"><option>--</opiton>{% for i in collector_list %}<option value="{{ i.pid }}"{% if args.collector_id and args.collector_id|int == i.pid|int %} selected{% endif %}>{% if i.name_en %}{{ i.name_en }}{% endif %} {% if i.nameC %}{{i.nameC }}{% endif %}</option>{% endfor %}</select></div>
+      <div>採集者 <select name="collector_id" value=""><option>--</opiton>{% for i in collector_list %}<option value="{{ i.pid }}"{% if args.collector_id and args.collector_id|int == i.pid|int %} selected{% endif %}>{% if i.name_en %}{{ i.name_en }}{% endif %} {% if i.nameC %}{{i.nameC }}{% endif %}</option>{% endfor %}</select></div>
 <div>學名/中文名 <input name="sci_name" type="text"{% if args.sci_name %} value="{{ args.sci_name}}"{% endif %}></input></div>
 <div>採集號 <input name="collect_num_1" type="text"{% if args.collect_num_1%} value="{{ args.collect_num_1 }}"{% endif %}></input> - <input name="collect_num_2" type="text"{% if args.collect_num_2 %} value="{{ args.collect_num_2 }}"{% endif %}></input></div>
+<div>國家 <select name="country_id"><option value="">--</opiton>{% for i in country_list %}<option value="{{ i.countryNo }}"{% if args.country_id and args.country_id|int == i.countryNo|int %} selected{% endif %}>{{ i.country }}/{{ i.countryC }}</option>{% endfor %}</select></div>
+<div>科 <select name="family_id" id="select-family"><option value="">--</opiton>{% for i in family_list %}<option value="{{ i.familyID }}"{% if args.family_id and args.family_id|int == i.familyID|int %} selected{% endif %}>{{ i.familyE }} / {{ i.familyC }}</option>{% endfor %}</select></div>
+<div>屬 <select name="genus_id" id="select-genus"></select></div>
 </div>
-
 <input type="submit" value="查詢"></input>    <input type="reset" value="reset"></input>
 <hr>
 </form>
@@ -119,7 +120,7 @@
     <tbody>
       {% for i in result.rows %}
       <tr>
-        <th>{{ loop.index }}</th>{% for h in result.headers %}<td class="ellipsis"><span>{{ i[h.key] }}</span></td>{% endfor %}
+        <th>{{ loop.index }}</th>{% for h in result.headers %}<td class="ellipsis"><span>{% if h.key == '_url' and i[h.key] %}<a href="{{i[h.key]}}" target="_blank">連結</a>{% else %}{{ i[h.key] }}{% endif %}</span></td>{% endfor %}
       </tr>
       {% endfor %}
     </tbody>
@@ -130,5 +131,45 @@
 hast. 2019
 <div id="query-hast"></div>
 <!--script src="/static/js/main.js"></script-->
+  <script>
+    const selectFamily = document.getElementById('select-family');
+    const selectGenus = document.getElementById('select-genus');
+    const urlParams = new URLSearchParams(window.location.search);
+    let genus_id = 0;
+    if (urlParams.has('genus_id')) {
+      genus_id = urlParams.get('genus_id');
+    }
+    function render_genus_select(family_id) {
+      fetch('/api/query/hast/family/'+family_id)
+        .then(function(response) {
+          return response.json();
+        })
+        .then(function(data) {
+          selectGenus.innerHTML = '';
+          const opt = document.createElement('option');
+          const opt_label = document.createTextNode('--');
+          opt.value = ''
+          opt.appendChild(opt_label);
+          selectGenus.appendChild(opt);
+          data.forEach(function (x) {
+            const opt = document.createElement('option');
+            const opt_label = document.createTextNode(x[1]);
+            let gid = parseInt(genus_id);
+            if (gid > 0 && parseInt(x[0]) === gid) {
+              opt.selected = true;
+            }
+            opt.value = x[0];
+          opt.appendChild(opt_label);
+          selectGenus.appendChild(opt);
+          });
+        });
+    }
+    selectFamily.onchange = function (e){
+      render_genus_select(e.target.value)
+    }
+    if (selectFamily.value) {
+      render_genus_select(selectFamily.value);
+    }
+  </script>
 </body>
 </html>

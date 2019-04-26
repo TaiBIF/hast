@@ -4,7 +4,7 @@ from flask import flash
 from sqlalchemy import or_
 from sqlalchemy.orm import subqueryload
 
-from app.models import Hast, Person, Species, Verification
+from app.models import Hast, Person, Species, Verification, Country, Family, Genus
 from app.utils import default_header_list
 
 
@@ -15,7 +15,16 @@ class OrgHast(object):
 
     def get_collector_list(self):
         return Person.query.filter(Person.collector==True).all()
-        
+
+    def get_country_list(self):
+        return Country.query.order_by('country').all()
+
+    def get_family_list(self):
+        return Family.query.order_by('familyE').all()
+
+    def get_genus_list(self, family_id):
+        return Genus.query.filter(Genus.familyID==family_id).order_by('genusE').all()
+
     def query(self, args={}):
         res = {
             'rows': [],
@@ -26,7 +35,7 @@ class OrgHast(object):
         }
         a = []
 
-        # collectors        
+        # collectors
         plist = Person.query.filter(Person.collector==True).all()
         for i in plist:
             res['menu']['collectors'].append([i.pid, '{} / {}'.format(i.name_en, i.nameC or '')])
@@ -34,9 +43,9 @@ class OrgHast(object):
         order_col = ''
         #for k,v in args.items():
         # sanity key
-        print (args)
+        #print (args)
         if args != {}:
-            if args.get('collector_id', '') and args['collector_id']:
+            if args.get('collector_id', ''):
                 q = q.filter(Hast.collectorID==args['collector_id'])
                 order_col = 'collectNum1'
             if args.get('collect_num_1', '') and args.get('collect_num_2', ''):
@@ -45,10 +54,10 @@ class OrgHast(object):
                              Hast.collectNum1<=args.get('collect_num_2'))
             elif args.get('collect_num_1', ''):
                 q = q.filter(Hast.collectNum1 == args.get('collect_num_1'))
-                
+
             if args.get('sci_name', ''):
                 #q = q.filter(Hast.verifications.species.speciesE.like('%{}%'.format(args['sci_name'])))
-                # tricky ! 
+                # tricky !
                 like_s = '%{}%'.format(args['sci_name'])
                 species = Species.query.filter(or_(Species.speciesE.like(like_s),
                                                    Species.speciesC.like(like_s))).\
@@ -58,9 +67,10 @@ class OrgHast(object):
                 ver_ids = [x.ID for x in vers]
                 q = q.filter(Hast.verifications.any(Verification.ID.in_(ver_ids)))
                 #print (species_ids, 'xxxxxxxx',vers)
-                #filter(Hast.verifications.speciesID.in_(species_ids))                
+                #filter(Hast.verifications.speciesID.in_(species_ids))
                 #q = q.filter(subqueryload(Verification.speciesID.in_(species_ids)))
-                
+            if args.get('country_id', ''):
+                q = q.filter(Hast.countryNo==args['country_id'])
 
             #a = q.limit(100)
             cnt = q.count()
@@ -68,18 +78,19 @@ class OrgHast(object):
                 flash('too many, 請重設條件!')
                 return res
             if order_col:
-                q = q.order_by(order_col)            
-            #print (q)        
-            a = q.limit(min(cnt, 2000)) # limit 2000
+                q = q.order_by(order_col)
+            a = q.limit(min(cnt, 2000)).all() # limit 2000
         else:
             a = []
-            
+
+        counter = 0
         for i in a:
             is_name_match = True
             speciemen_dup_list = [x.specimen for x in i.duplications if x.specimen]
             #print (i.SN, '-------------', speciemen_dup_list)
+            order_num = 0
             for j in speciemen_dup_list:
-                #print (i.SN,i.verifications, '======')                
+                #print (i.SN,i.verifications, '======')
                 names = {
                     'sci': '',
                     'sci0': '',
@@ -91,6 +102,7 @@ class OrgHast(object):
                     'identifier': '',
                     'identifier_zh': '',
                 }
+                order_num = j.specimenOrderNum
                 ## TODO 參考 ABCD 資料結構
                 if i.verifications:
                     ids = []
@@ -101,13 +113,13 @@ class OrgHast(object):
                             names['sci0'] = v0.species.speciesE if v0.species else  'speciesID:{}'.format(v0.speciesID) # 標籤學名: 第一次鑑定
                         elif v0.genusID:
                             names['genus'] = i.verifications[-1].genus
-                    
+
                     if v.speciesID:
                         names['sci'] = v.species.speciesE if v.species else 'speciesID:{}'.format(v.speciesID) #最新鑑定當作學名
                         #if args.get('sci_name', ''):
                         #    if args['sci_name'] not in names['sci']:
                         #        is_name_match = False
-                                
+
                         names['common'] = v.species.speciesC if v.species else 'speciesID:{}'.format(v.speciesID)
                         names['genus'] = v.species.genusE if v.species else ''
                         names['genus_zh'] = v.species.genusC if v.species else ''
@@ -135,7 +147,7 @@ class OrgHast(object):
                         names['identifier'] = '{} {}'.format(v.verifier.firstName, v.verifier.lastName)
                 #elif args.get('sci_name', ''): # 有查詢 sci_name, 但沒有 verification
                 #    is_name_match = False
-                                
+
                 area_list = []
                 if i.provinceNo:
                     area_list.append(i.province.provinceC or '')
@@ -152,37 +164,42 @@ class OrgHast(object):
                 if i.townNo:
                     area_en_list.append(i.town.hsiangTownE or '')
 
-                abcd_terms =  {
-                    'ID': i.SN,
-                    'UnitID': 'HAST:{}'.format(j.specimenOrderNum),
-                    '_ScientificName': names['sci'],
-                    '_ScientificNameHast': names['sci0'],
-                    '_family': names['family'],
-                    '_familyZH': names['family_zh'],
-                    '_genus': names['genus'],
-                    '_genusZH': names['genus_zh'],
-                    'informalName': names['common'],
-                    'Gathering_Agents_0_Person_ZH': i.collector.nameC if i.collector else '',
-                    'Gathering_Agents_0_Person': '{} {}'.format(i.collector.firstName, i.collector.lastName) if i.collector else '',
-                    'FieldNumber': '{} {}'.format(i.collectNum1, i.collectNum2 or ''),
-                    'Identification_Identifiers_0': names['identifier'],
-                    'Identification_Identifiers_0_ZH': names['identifier_zh'],
-                    'Identification_Identifiers_0': names['identifier'],
-                    '_GatheringDate': i.collectionDate.strftime('%Y-%m-%d') if i.collectionDate else '',
-                    '_comp': i.companion or '',
-                    '_comp_en': i.companionE or '',
-                    '_country': i.country.countryC if i.country else '',
-                    '_area': ' / '.join(area_list),
-                    '_area_en': ' / '.join(area_en_list),
-                    '_locality':'',
-                    '_locality_detail': i.additionalDesc or '',
-                    '_locality_detail_en': i.additionalDescE or '',
-                    '_geo_lng': '{}'.format(i.WGS84Lng or ''),
-                    '_geo_lat': '{}'.format(i.WGS84Lat or ''),
-                    '_alt': '{} - {}'.format(i.alt, i.altx) if i.altx else (i.alt or '')
-                    
-                }
+            abcd_terms =  {
+                'ID': i.SN,
+                'UnitID': '',
+                '_ScientificName': names['sci'],
+                '_ScientificNameHast': names['sci0'],
+                '_family': names['family'],
+                '_familyZH': names['family_zh'],
+                '_genus': names['genus'],
+                '_genusZH': names['genus_zh'],
+                'informalName': names['common'],
+                'Gathering_Agents_0_Person_ZH': i.collector.nameC if i.collector else '',
+                'Gathering_Agents_0_Person': '{} {}'.format(i.collector.firstName, i.collector.lastName) if i.collector else '',
+                'FieldNumber': '{} {}'.format(i.collectNum1, i.collectNum2 or ''),
+                'Identification_Identifiers_0': names['identifier'],
+                'Identification_Identifiers_0_ZH': names['identifier_zh'],
+                'Identification_Identifiers_0': names['identifier'],
+                '_GatheringDate': i.collectionDate.strftime('%Y-%m-%d') if i.collectionDate else '',
+                '_comp': i.companion or '',
+                '_comp_en': i.companionE or '',
+                '_country': i.country.countryC if i.country else '',
+                '_area': ' / '.join(area_list),
+                '_area_en': ' / '.join(area_en_list),
+                '_locality':'',
+                '_locality_detail': i.additionalDesc or '',
+                '_locality_detail_en': i.additionalDescE or '',
+                '_geo_lng': '{}'.format(i.WGS84Lng or ''),
+                '_geo_lat': '{}'.format(i.WGS84Lat or ''),
+                '_alt': '{} - {}'.format(i.alt, i.altx) if i.altx else (i.alt or ''),
+                '_url': ''
+            }
 
-                if is_name_match:
-                    res['rows'].append(abcd_terms)
+            if order_num:
+                abcd_terms['UnitID'] = 'HAST:{}'.format(order_num)
+                abcd_terms['_url'] = 'http://www.hast.biodiv.tw/specimens/SpecimenDetailC.aspx?specimenOrderNum={}'.format(order_num)
+
+            #if is_name_match:
+            res['rows'].append(abcd_terms)
+
         return res
