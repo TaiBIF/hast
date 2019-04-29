@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 # -.- coding: utf-8 -.-
+
+from datetime import datetime
+
 from flask import flash
 from sqlalchemy import or_
 from sqlalchemy.orm import subqueryload
@@ -72,6 +75,21 @@ class OrgHast(object):
             if args.get('country_id', ''):
                 q = q.filter(Hast.countryNo==args['country_id'])
 
+
+            if args.get('family_id', ''):
+                q = q.filter(Hast.verFamilyID==args['family_id'])
+            if args.get('genus_id', ''):
+                q = q.filter(Hast.verGesnuID==args['genus_id'])
+
+            if args.get('collect_date', ''):
+                cdate = args['collect_date'].split('-')
+                if len(cdate) > 1:
+                    beg = datetime.strptime(cdate[0], '%Y%m%d')
+                    end = datetime.strptime(cdate[1], '%Y%m%d')
+                    q = q.filter(Hast.collectionDate>=beg, Hast.collectionDate<=end)
+                else:
+                    q = q.filter(Hast.collectionDate==cdate)
+
             #a = q.limit(100)
             cnt = q.count()
             if cnt >= 2000:
@@ -91,19 +109,19 @@ class OrgHast(object):
             order_num = 0
             for j in speciemen_dup_list:
                 #print (i.SN,i.verifications, '======')
+                order_num = j.specimenOrderNum
+                ## TODO 參考 ABCD 資料結構
                 names = {
-                    'sci': '',
-                    'sci0': '',
-                    'common': '',
-                    'family': '',
-                    'family_zh':'',
-                    'genus': '',
-                    'genus_zh':'',
+                    'sci': '',#i.verSpeciesE,
+                    'sci0':'', #i.verSpeciesE,
+                    'common': '',#i.verSpeciesC,
+                    'family': '',#i.verFamilyE,
+                    'family_zh': '',#i.verFamilyC,
+                    'genus': '',#i.verGenusE,
+                    'genus_zh': '',#i.verGenusC,
                     'identifier': '',
                     'identifier_zh': '',
                 }
-                order_num = j.specimenOrderNum
-                ## TODO 參考 ABCD 資料結構
                 if i.verifications:
                     ids = []
                     v0 = i.verifications[-1]
@@ -120,7 +138,7 @@ class OrgHast(object):
                         #    if args['sci_name'] not in names['sci']:
                         #        is_name_match = False
 
-                        names['common'] = v.species.speciesC if v.species else 'speciesID:{}'.format(v.speciesID)
+                        names['common'] = v.species.speciesC or '' if v.species else 'speciesID:{}'.format(v.speciesID)
                         names['genus'] = v.species.genusE if v.species else ''
                         names['genus_zh'] = v.species.genusC if v.species else ''
                         names['family'] = v.family.familyE if v.family else ''
@@ -164,42 +182,46 @@ class OrgHast(object):
                 if i.townNo:
                     area_en_list.append(i.town.hsiangTownE or '')
 
-            abcd_terms =  {
-                'ID': i.SN,
-                'UnitID': '',
-                '_ScientificName': names['sci'],
-                '_ScientificNameHast': names['sci0'],
-                '_family': names['family'],
-                '_familyZH': names['family_zh'],
-                '_genus': names['genus'],
-                '_genusZH': names['genus_zh'],
-                'informalName': names['common'],
-                'Gathering_Agents_0_Person_ZH': i.collector.nameC if i.collector else '',
-                'Gathering_Agents_0_Person': '{} {}'.format(i.collector.firstName, i.collector.lastName) if i.collector else '',
-                'FieldNumber': '{} {}'.format(i.collectNum1, i.collectNum2 or ''),
-                'Identification_Identifiers_0': names['identifier'],
-                'Identification_Identifiers_0_ZH': names['identifier_zh'],
-                'Identification_Identifiers_0': names['identifier'],
-                '_GatheringDate': i.collectionDate.strftime('%Y-%m-%d') if i.collectionDate else '',
-                '_comp': i.companion or '',
-                '_comp_en': i.companionE or '',
-                '_country': i.country.countryC if i.country else '',
-                '_area': ' / '.join(area_list),
-                '_area_en': ' / '.join(area_en_list),
-                '_locality':'',
-                '_locality_detail': i.additionalDesc or '',
-                '_locality_detail_en': i.additionalDescE or '',
-                '_geo_lng': '{}'.format(i.WGS84Lng or ''),
-                '_geo_lat': '{}'.format(i.WGS84Lat or ''),
-                '_alt': '{} - {}'.format(i.alt, i.altx) if i.altx else (i.alt or ''),
-                '_url': ''
-            }
+                abcd_terms =  {
+                    'ID': i.SN,
+                    'UnitID': '',
+                    '_ScientificName': names['sci'],
+                    '_ScientificNameHast': names['sci0'],
+                    '_family': names['family'],
+                    '_familyZH': names['family_zh'],
+                    '_genus': names['genus'],
+                    '_genusZH': names['genus_zh'],
+                    'informalName': names['common'],
+                    'Gathering_Agents_0_Person_ZH': i.collector.nameC if i.collector else '',
+                    'Gathering_Agents_0_Person': '{} {}'.format(i.collector.firstName, i.collector.lastName) if i.collector else '',
+                    'FieldNumber': '{} {}'.format(i.collectNum1, i.collectNum2 or ''),
+                    'Identification_Identifiers_0': names['identifier'],
+                    'Identification_Identifiers_0_ZH': names['identifier_zh'],
+                    'Identification_Identifiers_0': names['identifier'],
+                    '_GatheringDate': i.collectionDate.strftime('%Y-%m-%d') if i.collectionDate else '',
+                    '_comp': i.companion or '',
+                    '_comp_en': i.companionE or '',
+                    '_country': i.country.countryC if i.country else '',
+                    '_area': ' / '.join(area_list),
+                    '_area_en': ' / '.join(area_en_list),
+                    '_locality':'',
+                    '_locality_detail': i.additionalDesc or '',
+                    '_locality_detail_en': i.additionalDescE or '',
+                    '_geo_lng': '{}'.format(i.WGS84Lng or ''),
+                    '_geo_lat': '{}'.format(i.WGS84Lat or ''),
+                    '_alt': '{} - {}'.format(i.alt, i.altx) if i.altx else (i.alt or ''),
+                    '_url': ''
+                }
 
-            if order_num:
-                abcd_terms['UnitID'] = 'HAST:{}'.format(order_num)
-                abcd_terms['_url'] = 'http://www.hast.biodiv.tw/specimens/SpecimenDetailC.aspx?specimenOrderNum={}'.format(order_num)
+                if order_num:
+                    abcd_terms['UnitID'] = 'HAST:{}'.format(order_num)
+                    abcd_terms['_url'] = 'http://www.hast.biodiv.tw/specimens/SpecimenDetailC.aspx?specimenOrderNum={}'.format(order_num)
 
-            #if is_name_match:
-            res['rows'].append(abcd_terms)
+                #if is_name_match:
+                res['rows'].append(abcd_terms)
+
+        #f = open('ids.txt', 'w')
+        #f.write(str([x['ID'] for x in res['rows']]))
+        #f.close()
 
         return res

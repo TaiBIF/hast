@@ -101,11 +101,13 @@
       <div>採集者 <select name="collector_id" value=""><option>--</opiton>{% for i in collector_list %}<option value="{{ i.pid }}"{% if args.collector_id and args.collector_id|int == i.pid|int %} selected{% endif %}>{% if i.name_en %}{{ i.name_en }}{% endif %} {% if i.nameC %}{{i.nameC }}{% endif %}</option>{% endfor %}</select></div>
 <div>學名/中文名 <input name="sci_name" type="text"{% if args.sci_name %} value="{{ args.sci_name}}"{% endif %}></input></div>
 <div>採集號 <input name="collect_num_1" type="text"{% if args.collect_num_1%} value="{{ args.collect_num_1 }}"{% endif %}></input> - <input name="collect_num_2" type="text"{% if args.collect_num_2 %} value="{{ args.collect_num_2 }}"{% endif %}></input></div>
+<div>採集日期<input name="collect_date_y" placeholder="YYYY" size="5" value="{{ collect_date.y }}"> 年 <input name="collect_date_m" placeholder="MM" size="3" value="{{ collect_date.m}}"> 月 <input name="collect_date_d" placeholder="DD" size="3" value="{{ collect_date.d}}"> 日 ~ <input name="collect_date_y2" placeholder="YYYY" size="5" value="{{ collect_date.y2}}"> 年 <input name="collect_date_m2" placeholder="MM" size="3" value="{{ collect_date.m2 }}"> 月 <input name="collect_date_d2" placeholder="DD" size="3" value="{{ collect_date.d2 }}"> 日</div>
+
 <div>國家 <select name="country_id"><option value="">--</opiton>{% for i in country_list %}<option value="{{ i.countryNo }}"{% if args.country_id and args.country_id|int == i.countryNo|int %} selected{% endif %}>{{ i.country }}/{{ i.countryC }}</option>{% endfor %}</select></div>
 <div>科 <select name="family_id" id="select-family"><option value="">--</opiton>{% for i in family_list %}<option value="{{ i.familyID }}"{% if args.family_id and args.family_id|int == i.familyID|int %} selected{% endif %}>{{ i.familyE }} / {{ i.familyC }}</option>{% endfor %}</select></div>
 <div>屬 <select name="genus_id" id="select-genus"></select></div>
 </div>
-<input type="submit" value="查詢"></input>    <input type="reset" value="reset"></input>
+<input type="submit" value="查詢"></input>    <a href="/">reset</a>
 <hr>
 </form>
 

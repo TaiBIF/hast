@@ -58,11 +58,50 @@ def query(organization):
         for i in ['collector_id', 'sci_name', 'collect_num_1', 'collect_num_2', 'country_id', 'family_id', 'genus_id']:
             if request.form.get(i, ''):
                 args[i] = request.form[i]
+        dstr = ''
+        if request.form.get('collect_date_y', ''):
+            dstr = '{}{:02d}{:02d}'.format(
+                request.form.get('collect_date_y'),
+                1 if not request.form.get('collect_date_m') else int(request.form.get('collect_date_m')),
+                1 if not request.form.get('collect_date_d') else int(request.form.get('collect_date_d')))
+        if request.form.get('collect_date_y2', ''):
+            dstr += '-{}{:02d}{:02d}'.format(
+                request.form.get('collect_date_y2'),
+                1 if not request.form.get('collect_date_m2') else int(request.form.get('collect_date_m2')),
+                1 if not request.form.get('collect_date_d2') else int(request.form.get('collect_date_d2')))
+
+        if dstr:
+            args['collect_date'] = dstr
         return redirect(url_for('query', organization='hast', **args))
     elif request.method == 'GET':
         args = request.args # sanity?
         res = org.query(args=args)
-    return render_template('query.html', collector_list=collector_list, result=res, args=args, country_list=country_list, family_list=family_list)
+
+        collect_date = {
+            'y': '',
+            'm': '',
+            'd': '',
+            'y2': '',
+            'm2': '',
+            'd2': ''
+        }
+
+        if args.get('collect_date', ''):
+            cdate = args['collect_date'].split('-')
+            if len(cdate) > 1:
+                print (cdate)
+                collect_date['y'] = cdate[0][0:4]
+                collect_date['m'] = cdate[0][4:6]
+                collect_date['d'] = cdate[0][6:]
+                collect_date['y2'] = cdate[1][0:4]
+                collect_date['m2'] = cdate[1][4:6]
+                collect_date['d2'] = cdate[1][6:]
+            else:
+                collect_date['y'] = cdate[0:4]
+                collect_date['m'] = cdate[4:7]
+                collect_date['d'] = cdate[7:]
+
+    return render_template('query.html', collector_list=collector_list, result=res, args=args, country_list=country_list, family_list=family_list, collect_date=collect_date)
 
 @app.route("/export_csv/<organization>")
 def export_csv(organization):

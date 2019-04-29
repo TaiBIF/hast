@@ -59,7 +59,8 @@ class Person(db.Model):
 
 class Hast(db.Model):
 
-    __tablename__ = 'hast'
+    #__tablename__ = 'hast'
+    __tablename__ = 'vwHastDetail'
 
     SN = db.Column(db.Integer, primary_key=True)
     collectorID = db.Column(db.Integer, db.ForeignKey('person.pid'))
@@ -91,6 +92,17 @@ class Hast(db.Model):
     verifications = db.relationship('Verification')
     duplications = db.relationship('Duplication')
 
+    verSpeciesID = db.Column(db.Integer, db.ForeignKey('vwSpecies.speciesID'))
+    verGesnuID = db.Column(db.Integer, db.ForeignKey('vwGenus.genusID')) # typo 
+    verFamilyID = db.Column(db.Integer, db.ForeignKey('vwFamily.familyID'))
+    verSpeciesC = db.Column(db.String(255))
+    verSpeciesE = db.Column(db.String(255))
+    verFamilyC = db.Column(db.String(255))
+    verFamilyE = db.Column(db.String(255))
+    verGenusC = db.Column(db.String(255))
+    verGenusE = db.Column(db.String(255))
+    #verifierName = db.Column(db.String(255))
+
     def to_dwc(self): # DEPRICATED
         return {
             'recordedBy': self.collector.nameC if self.collector else '',
@@ -104,7 +116,7 @@ class Verification(db.Model):
     __tablename__ = 'verification'
 
     ID = db.Column(db.Integer, primary_key=True)
-    SN = db.Column(db.Integer, db.ForeignKey('hast.SN'))
+    SN = db.Column(db.Integer, db.ForeignKey('vwHastDetail.SN'))
     verificationNo = db.Column(db.Integer) # TODO
     verifierid = db.Column(db.Integer, db.ForeignKey('person.pid'))
     verificationDate = db.Column(db.DateTime)
@@ -126,7 +138,7 @@ class Duplication(db.Model):
     __tablename__ = 'duplications'
 
     dupID = db.Column(db.Integer, primary_key=True)
-    SN = db.Column(db.Integer, db.ForeignKey('hast.SN'))
+    SN = db.Column(db.Integer, db.ForeignKey('vwHastDetail.SN'))
     dupNo = db.Column(db.Integer)
 
 
