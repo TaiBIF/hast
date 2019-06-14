@@ -7,7 +7,7 @@ from flask import flash
 from sqlalchemy import or_
 from sqlalchemy.orm import subqueryload
 
-from app.models import Hast, Person, Species, Verification, Country, Family, Genus
+from app.models import Hast, Person, Species, Verification, Country, Family, Genus, Specimen, Duplication
 from app.utils import default_header_list
 
 
@@ -37,7 +37,7 @@ class OrgHast(object):
             }
         }
         a = []
-
+        specimen_order_num_list = [] # 用館號搜尋時, 去連集, 不要找出副本
         # collectors
         plist = Person.query.filter(Person.collector==True).all()
         for i in plist:
@@ -90,6 +90,16 @@ class OrgHast(object):
                 else:
                     q = q.filter(Hast.collectionDate==cdate)
 
+            if args.get('unit_ids', ''):
+                # 用館號搜尋, 不要找複本
+                no_dup = True
+                unit_id_list = args['unit_ids'].split(',')
+                specimen_order_num_list = Specimen.query.filter(Specimen.specimenOrderNum.in_(unit_id_list)).all()
+                sn_list = []
+                for sm in specimen_order_num_list:
+                    sn_list.append(sm.duplication.SN)
+                q = q.filter(Hast.SN.in_(sn_list))
+
             #a = q.limit(100)
             cnt = q.count()
             if cnt >= 2000:
@@ -103,11 +113,18 @@ class OrgHast(object):
 
         counter = 0
         for i in a:
+            counter += 1
             is_name_match = True
-            speciemen_dup_list = [x.specimen for x in i.duplications if x.specimen]
-            #print (i.SN, '-------------', speciemen_dup_list)
+            specimen_dup_list = [x.specimen for x in i.duplications if x.specimen]
+            #print (i.SN, '-------------', specimen_dup_list, specimen_order_num_list)
+            hast_dup_list = []
+            if specimen_order_num_list:
+                hast_dup_list = list(set(specimen_dup_list).intersection(set(specimen_order_num_list)))
+            else:
+                hast_dup_list = specimen_dup_list
+            #print (i, hast_dup_list, counter, cnt)
             order_num = 0
-            for j in speciemen_dup_list:
+            for j in hast_dup_list:
                 #print (i.SN,i.verifications, '======')
                 order_num = j.specimenOrderNum
                 ## TODO 參考 ABCD 資料結構
@@ -221,7 +238,6 @@ class OrgHast(object):
                 res['rows'].append(abcd_terms)
 
         #f = open('ids.txt', 'w')
-        #f.write(str([x['ID'] for x in res['rows']]))
+        #f.write(str([x['UnitID'] for x in res['rows']]))
         #f.close()
-
         return res

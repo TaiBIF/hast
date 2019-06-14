@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -.- coding: utf-8 -.-
 
+import os
+import re
+
 # Dwc
 def default_header_list():
     map_sort = [
@@ -34,3 +37,18 @@ def default_header_list():
         ('_url', '網站連結')
     ]
     return [ {'key': x[0], 'label': x[1], 'alphabet': chr(65+i) } for i, x in enumerate(map_sort)]
+
+def find_image_file_list(id_list):
+    img_pool_path = '/Users/moogoolee/mgd/bucket/hast-img'
+    a = 0
+    file_list = []
+    for root, dirs, files in os.walk(img_pool_path):
+        for i in files:
+            a += 1
+            m = re.search(r'S_([0-9]+)\.(JPG|jpg)', i)
+            if m:
+                id_ = m.group(1)
+                for j in id_list:
+                    file_list.append(os.path.join(root, i))
+    #print (file_list)
+    return file_list

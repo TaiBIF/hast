@@ -3,9 +3,12 @@ from flask import Response, send_from_directory
 #import pymssql
 import tempfile
 from openpyxl import Workbook
+from io import BytesIO
+import zipfile
 
 from app import app, db
 from app.orginations import OrgHast
+from app.utils import find_image_file_list
 
 @app.route('/')
 def index():
@@ -55,7 +58,7 @@ def query(organization):
     family_list= org.get_family_list()
     args = {}
     if request.method == 'POST':
-        for i in ['collector_id', 'sci_name', 'collect_num_1', 'collect_num_2', 'country_id', 'family_id', 'genus_id']:
+        for i in ['collector_id', 'sci_name', 'collect_num_1', 'collect_num_2', 'country_id', 'family_id', 'genus_id','unit_ids']:
             if request.form.get(i, ''):
                 args[i] = request.form[i]
         dstr = ''
@@ -103,8 +106,8 @@ def query(organization):
 
     return render_template('query.html', collector_list=collector_list, result=res, args=args, country_list=country_list, family_list=family_list, collect_date=collect_date)
 
-@app.route("/export_csv/<organization>")
-def export_csv(organization):
+@app.route('/export_excel/<organization>')
+def export_excel(organization):
     args = request.args # sanity?
 
     #tmp = tempfile.NamedTemporaryFile()
@@ -112,7 +115,6 @@ def export_csv(organization):
     filename = 'hast-dump.xlsx'
     org_map = {'hast': OrgHast}
     org = org_map[organization]()
-    csv_list = []
     q = org.query(args)
 
     wb = Workbook(write_only=True)
@@ -125,3 +127,28 @@ def export_csv(organization):
     wb.save(filename)
 
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename, as_attachment=True)
+
+@app.route('/export_zipped_images/<organization>')
+def export_zipped_images(organization):
+    args = request.args
+    org_map = {'hast': OrgHast}
+    org = org_map[organization]()
+    q = org.query(args)
+
+    id_list = []
+    for i in q['rows']:
+        id_list.append(i['UnitID'][5:])
+
+    memory_file = BytesIO()
+    file_list = find_image_file_list(id_list)
+    #print (file_list)
+
+    from flask import send_file
+
+    with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for i in file_list:
+            zipf.write(i)
+    memory_file.seek(0)
+    return send_file(memory_file,
+                     attachment_filename='images.zip',
+                     as_attachment=True)
