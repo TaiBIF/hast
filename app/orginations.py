@@ -102,16 +102,18 @@ class OrgHast(object):
 
             #a = q.limit(100)
             cnt = q.count()
-            if cnt >= 2000:
-                flash('too many, 請重設條件!')
+            if cnt >= 4000:
+                flash('too many: %d, 請重設條件!'%cnt)
                 return res
             if order_col:
                 q = q.order_by(order_col)
-            a = q.limit(min(cnt, 2000)).all() # limit 2000
+            #a = q.limit(min(cnt, 4000)).all() # limit 2000
+            a = q.all()
         else:
             a = []
 
         counter = 0
+        counter_collection = 0
         for i in a:
             counter += 1
             is_name_match = True
@@ -122,9 +124,10 @@ class OrgHast(object):
                 hast_dup_list = list(set(specimen_dup_list).intersection(set(specimen_order_num_list)))
             else:
                 hast_dup_list = specimen_dup_list
-            #print (i, hast_dup_list, counter, cnt)
+            #print (i, hast_dup_list, counter, counter_collection)
             order_num = 0
             for j in hast_dup_list:
+                counter_collection += 1
                 #print (i.SN,i.verifications, '======')
                 order_num = j.specimenOrderNum
                 ## TODO 參考 ABCD 資料結構
@@ -164,8 +167,8 @@ class OrgHast(object):
                         if v.genus:
                             names['genus'] = v.genus.genusE
                             names['genus_zh'] = v.genus.genusC
-                            names['family'] = v.family.familyE
-                            names['family_zh'] = v.family.familyC
+                            names['family'] = v.family.familyE if v.family else ''
+                            names['family_zh'] = v.family.familyC if v.family else ''
                         else:
                             names['genus'] = v.genusID
                             names['genus_zh'] = v.genusID
